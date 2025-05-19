@@ -1,6 +1,6 @@
-# PyBox2EXE
 
-**PyBox2EXE** là ứng dụng giúp bạn đóng gói file Python (.py) thành file thực thi (.exe) cho Windows chỉ với vài cú click chuột.
+
+**PyDeloy** là ứng dụng giúp bạn đóng gói file Python (.py) thành file thực thi (.exe) cho Windows chỉ với vài cú click chuột.
 
 ---
 
@@ -33,8 +33,14 @@
 ## Yêu cầu hệ thống
 
 - Python 3.7+
-- PyQt6 (`pip install pyqt6`)
-- PyInstaller (`pip install pyinstaller`)
+- PyQt6 
+```
+pip install pyqt6
+```
+- PyInstaller 
+```
+pip install pyinstaller
+```
 - Windows 10/11
 
 ---
