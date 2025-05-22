@@ -1,10 +1,26 @@
-import sys, os, subprocess
+import sys, os, subprocess, ast
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QFileDialog, QCheckBox, QLineEdit, QMessageBox, QListWidget,
-    QSizePolicy, QProgressBar, QTextEdit
+    QSizePolicy, QProgressBar, QTextEdit, QComboBox
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
+def get_imported_modules(pyfile):
+    modules = set()
+    try:
+        with open(pyfile, "r", encoding="utf-8") as f:
+            tree = ast.parse(f.read(), pyfile)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for n in node.names:
+                    modules.add(n.name.split('.')[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    modules.add(node.module.split('.')[0])
+    except Exception:
+        pass
+    return sorted(modules)
 
 class DropArea(QLabel):
     def __init__(self, parent=None):
@@ -35,7 +51,7 @@ class DropArea(QLabel):
         for file in files:
             ext = os.path.splitext(file)[1].lower()
             if ext == ".py":
-                self.parent.py_path_edit.setText(file)
+                self.parent.set_py_file_and_detect_modules(file)
             elif ext == ".ico":
                 self.parent.icon_path_edit.setText(file)
             elif ext == ".wav":
@@ -88,7 +104,7 @@ class ExeBuilder(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Python → EXE Builder (Drag & Drop, Hiện log)")
-        self.resize(730, 700)
+        self.resize(750, 730)
         self.extra_files = []
         self.dist_folder = os.path.abspath("dist")
         self._init_ui()
@@ -163,8 +179,15 @@ class ExeBuilder(QWidget):
         options_layout = QHBoxLayout()
         self.chk_onefile = QCheckBox("Đóng gói 1 file (--onefile)")
         self.chk_noconsole = QCheckBox("Ẩn console (--noconsole)")
+        self.chk_collectall = QCheckBox("Thu thập toàn bộ module (--collect-all)")
+        self.collectall_combo = QComboBox()
+        self.collectall_combo.setEditable(True)
+        self.collectall_combo.setPlaceholderText("Chọn module/package")
+        self.collectall_combo.setMaximumWidth(200)
         options_layout.addWidget(self.chk_onefile)
         options_layout.addWidget(self.chk_noconsole)
+        options_layout.addWidget(self.chk_collectall)
+        options_layout.addWidget(self.collectall_combo)
         layout.addLayout(options_layout)
 
         # Dòng lệnh tuỳ chỉnh
@@ -203,12 +226,22 @@ class ExeBuilder(QWidget):
         self.dist_path_edit.textChanged.connect(self.update_command_preview)
         self.chk_onefile.stateChanged.connect(self.update_command_preview)
         self.chk_noconsole.stateChanged.connect(self.update_command_preview)
+        self.chk_collectall.stateChanged.connect(self.update_command_preview)
+        self.collectall_combo.currentTextChanged.connect(self.update_command_preview)
+
+    def set_py_file_and_detect_modules(self, file):
+        self.py_path_edit.setText(file)
+        # Tự động nhận diện các module import
+        modules = get_imported_modules(file)
+        self.collectall_combo.clear()
+        self.collectall_combo.addItems(modules)
+        self.collectall_combo.setCurrentIndex(-1)
+        self.update_command_preview()
 
     def select_py_file(self):
         file, _ = QFileDialog.getOpenFileName(self, "Chọn file .py", "", "Python Files (*.py)")
         if file:
-            self.py_path_edit.setText(file)
-            self.update_command_preview()
+            self.set_py_file_and_detect_modules(file)
 
     def select_icon_file(self):
         file, _ = QFileDialog.getOpenFileName(self, "Chọn icon", "", "Icon Files (*.ico)")
@@ -247,6 +280,10 @@ class ExeBuilder(QWidget):
             options.append("--onefile")
         if self.chk_noconsole.isChecked():
             options.append("--noconsole")
+        if self.chk_collectall.isChecked():
+            mod_name = self.collectall_combo.currentText().strip()
+            if mod_name:
+                options.append(f"--collect-all {mod_name}")
         if ico:
             options.append(f"--icon=\"{ico}\"")
         if dist:
