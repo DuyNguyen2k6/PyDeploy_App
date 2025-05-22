@@ -32,18 +32,17 @@
 
 ## Yêu cầu hệ thống
 
-- Python 3.7+
-- PyQt6 
+- Python : https://www.python.org/downloads/release/python-3133/
+- PyQt6 - PyInstaller 
+
 ```
-pip install pyqt6
+   pip install pyqt6 pyinstaller
 ```
-- PyInstaller 
-```
-pip install pyinstaller
-```
+
+
 - Windows 10/11
 
----
+
 
 ## Lưu ý
 
